@@ -1,0 +1,8 @@
+.env
+render.yaml
+*.env
+*.log
+*.json
+reports/
+__pycache__/
+*.pyc

@@ -1,0 +1,1026 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Routes</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Manage Traffic Monitoring Routes</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header">Add New Route</div>
+            <div class="card-body">
+                <form id="routeForm">
+                    <div class="mb-3">
+                        <label class="form-label">Origin Name</label>
+                        <input type="text" class="form-control" name="origin" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Destination Name</label>
+                        <input type="text" class="form-control" name="destination" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Origin Coordinates (lat,lng)</label>
+                        <input type="text" class="form-control" name="origin_coords" placeholder="6.4318,3.4216" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Destination Coordinates (lat,lng)</label>
+                        <input type="text" class="form-control" name="dest_coords" placeholder="6.4389,3.4278" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Waypoints (comma separated lat,lng pairs)</label>
+                        <input type="text" class="form-control" name="waypoints" placeholder="6.4335,3.4247;6.4362,3.4263">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Route</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Current Routes</div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Origin</th>
+                            <th>Destination</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="routesTable">
+                        Routes will be populated here -->
+                    <!-- </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load routes on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchRoutes();
+            
+            // Handle form submission
+            document.getElementById('routeForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                
+                const waypoints = formData.get('waypoints') 
+                    ? formData.get('waypoints').split(';').map(wp => {
+                        const [lat, lng] = wp.split(',').map(Number);
+                        return [lat, lng];
+                    })
+                    : [];
+                
+                const newRoute = {
+                    origin: formData.get('origin'),
+                    destination: formData.get('destination'),
+                    coords: {
+                        origin: formData.get('origin_coords').split(',').map(Number),
+                        destination: formData.get('dest_coords').split(',').map(Number),
+                        waypoints: waypoints
+                    }
+                };
+                
+                fetch('/api/routes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRoute)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        alert('Route added successfully!');
+                        fetchRoutes();
+                        e.target.reset();
+                    }
+                });
+            });
+        });
+        
+        function fetchRoutes() {
+            fetch('/api/routes')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('routesTable');
+                    table.innerHTML = '';
+                    
+                    data.routes.forEach((route, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${route.origin}</td>
+                            <td>${route.destination}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteRoute(${index})">Delete</button>
+                            </td>
+                        `;
+                        table.appendChild(row);
+                    });
+                });
+        }
+        
+        function deleteRoute(index) {
+            if(confirm('Are you sure you want to delete this route?')) {
+                fetch(`/api/routes/${index}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.status === 'success') {
+                            fetchRoutes();
+                        }
+                    });
+            } -->
+        <!-- }
+    </script> 
+</body>
+</html> -->
+
+
+ <!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Routes</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+<div class="container mt-4">
+    <h2>Manage Traffic Monitoring Routes</h2>
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Search for locations or click on the map to set route points
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">Add New Route</div>
+        <div class="card-body">
+            Interactive Map -->
+            <!-- <div id="routeMap" style="height: 400px; margin-bottom: 20px; border-radius: 5px;"></div>
+            
+            <form id="routeForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Origin</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="originSearch" placeholder="Search origin address">
+                                <button class="btn btn-outline-secondary" type="button" id="setOriginBtn">
+                                    <i class="bi bi-map"></i> Pick on Map
+                                </button>
+                            </div>
+                            <input type="hidden" name="origin" required>
+                            <input type="hidden" name="origin_coords" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Destination</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="destSearch" placeholder="Search destination address">
+                                <button class="btn btn-outline-secondary" type="button" id="setDestBtn">
+                                    <i class="bi bi-map"></i> Pick on Map
+                                </button>
+                            </div>
+                            <input type="hidden" name="destination" required>
+                            <input type="hidden" name="dest_coords" required>
+                        </div>
+                    </div>
+                </div> -->
+<!--                 
+                <div class="mb-3">
+                    <label class="form-label">Waypoints</label>
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control" id="waypointSearch" placeholder="Search waypoint address">
+                        <button class="btn btn-outline-secondary" type="button" id="addWaypointBtn">
+                            <i class="bi bi-map"></i> Pick on Map
+                        </button>
+                    </div>
+                    <div id="waypointsList" class="mb-2"></div>
+                    <input type="hidden" name="waypoints">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Route
+                </button>
+                <button type="button" class="btn btn-outline-danger ms-2" id="clearRouteBtn">
+                    <i class="bi bi-trash"></i> Clear
+                </button>
+            </form>
+        </div>
+    </div>
+</div> -->
+
+<!-- Include Mapbox GL JS -->
+<!-- <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set your Mapbox access token
+    mapboxgl.accessToken = 'pk.eyJ1Ijoia2F5b2RlNDM3MSIsImEiOiJjbTlvYmhsc3kwOHFoMnFzNDNhMXZ6d3Z2In0.DdyljSTMJHRhinPoMGXtXw';
+    
+    // Initialize map centered on Lagos
+    const map = new mapboxgl.Map({
+        container: 'routeMap',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [3.3792, 6.5244], // [lng, lat]
+        zoom: 12
+    });
+    
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl());
+    
+    // Map markers
+    let originMarker, destinationMarker;
+    const waypointMarkers = [];
+    let currentMode = null;
+    
+    // Initialize Geocoders for address search
+    const originGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search origin address',
+        countries: 'ng', // Nigeria only
+        proximity: { longitude: 3.3792, latitude: 6.5244 } // Lagos center
+    });
+    
+    const destGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search destination address',
+        countries: 'ng',
+        proximity: { longitude: 3.3792, latitude: 6.5244 }
+    });
+    
+    const waypointGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search waypoint address',
+        countries: 'ng',
+        proximity: { longitude: 3.3792, latitude: 6.5244 }
+    });
+    
+    // Add geocoders to search inputs
+    document.getElementById('originSearch').appendChild(originGeocoder.onAdd(map));
+    document.getElementById('destSearch').appendChild(destGeocoder.onAdd(map));
+    document.getElementById('waypointSearch').appendChild(waypointGeocoder.onAdd(map));
+    
+    // Handle geocoder results
+    originGeocoder.on('result', (e) => {
+        setOrigin([e.result.center[1], e.result.center[0]], e.result.place_name);
+    });
+    
+    destGeocoder.on('result', (e) => {
+        setDestination([e.result.center[1], e.result.center[0]], e.result.place_name);
+    });
+    
+    waypointGeocoder.on('result', (e) => {
+        addWaypoint([e.result.center[1], e.result.center[0]], e.result.place_name);
+        document.getElementById('waypointSearch').value = '';
+    });
+    
+    // Button event handlers
+    document.getElementById('setOriginBtn').addEventListener('click', function() {
+        currentMode = 'origin';
+        alert('Click on the map to set origin location');
+    });
+    
+    document.getElementById('setDestBtn').addEventListener('click', function() {
+        currentMode = 'destination';
+        alert('Click on the map to set destination location');
+    });
+    
+    document.getElementById('addWaypointBtn').addEventListener('click', function() {
+        currentMode = 'waypoint';
+        alert('Click on the map to add waypoint');
+    });
+    
+    document.getElementById('clearRouteBtn').addEventListener('click', clearRoute); -->
+    
+    <!-- // Map click handler
+    // map.on('click', function(e) {
+    //     if (!currentMode) return;
+        
+    //     const coords = [e.lngLat.lat, e.lngLat.lng];
+        
+    //     switch(currentMode) {
+    //         case 'origin':
+    //             setOrigin(coords, `Custom Origin (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+    //             break;
+    //         case 'destination':
+    //             setDestination(coords, `Custom Destination (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+    //             break;
+    //         case 'waypoint':
+    //             addWaypoint(coords, `Waypoint (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+    //             break;
+    //     }
+        
+    //     currentMode = null;
+    // });
+    
+    // Create a popup but don't add it to the map yet.
+    // const popup = new mapboxgl.Popup({
+    //     closeButton: false,
+    //     closeOnClick: false
+    // });
+    
+    // Route management functions
+    // function setOrigin(coords, name) {
+    //     if (originMarker) originMarker.remove();
+        
+    //     originMarker = new mapboxgl.Marker({
+    //         color: '#3388ff',
+    //         draggable: true
+    //     })
+    //     .setLngLat([coords[1], coords[0]])
+    //     .setPopup(new mapboxgl.Popup().setHTML(`<strong>Origin:</strong> ${name}`))
+    //     .addTo(map);
+        
+    //     document.querySelector('[name="origin"]').value = name;
+    //     document.querySelector('[name="origin_coords"]').value = coords.join(',');
+        
+    //     originMarker.on('dragend', () => {
+    //         const newCoords = originMarker.getLngLat();
+    //         document.querySelector('[name="origin_coords"]').value = `${newCoords.lat},${newCoords.lng}`;
+    //     });
+    // }
+    
+    // function setDestination(coords, name) {
+    //     if (destinationMarker) destinationMarker.remove();
+        
+    //     destinationMarker = new mapboxgl.Marker({
+    //         color: '#ff3333',
+    //         draggable: true
+    //     })
+    //     .setLngLat([coords[1], coords[0]])
+    //     .setPopup(new mapboxgl.Popup().setHTML(`<strong>Destination:</strong> ${name}`))
+    //     .addTo(map);
+        
+    //     document.querySelector('[name="destination"]').value = name;
+    //     document.querySelector('[name="dest_coords"]').value = coords.join(',');
+        
+    //     destinationMarker.on('dragend', () => {
+    //         const newCoords = destinationMarker.getLngLat();
+    //         document.querySelector('[name="dest_coords"]').value = `${newCoords.lat},${newCoords.lng}`;
+    //     });
+    // }
+    
+    // function addWaypoint(coords, name) {
+    //     const marker = new mapboxgl.Marker({
+    //         color: '#33cc33',
+    //         draggable: true
+    //     })
+    //     .setLngLat([coords[1], coords[0]])
+    //     .setPopup(new mapboxgl.Popup().setHTML(`<strong>Waypoint ${waypointMarkers.length + 1}:</strong> ${name}`))
+    //     .addTo(map);
+        
+    //     waypointMarkers.push({
+    //         marker: marker,
+    //         name: name
+    //     });
+        
+    //     marker.on('dragend', () => {
+    //         updateWaypointsList();
+    //     });
+        
+    //     updateWaypointsList();
+    // }
+    
+    // function updateWaypointsList() {
+    //     const waypoints = waypointMarkers.map((wp, i) => {
+    //         const coords = wp.marker.getLngLat();
+    //         return {
+    //             coords: `${coords.lat},${coords.lng}`,
+    //             name: wp.name || `Waypoint ${i+1}`
+    //         };
+    //     });
+        
+    //     document.querySelector('[name="waypoints"]').value = waypoints.map(wp => wp.coords).join(';');
+        
+        // Update visual list
+    //     const list = document.getElementById('waypointsList');
+    //     list.innerHTML = waypoints.map((wp, i) => `
+    //         <div class="d-flex align-items-center mb-1 p-2 bg-light rounded">
+    //             <span class="badge bg-success me-2">${i+1}</span>
+    //             <span class="small">${wp.name}</span>
+    //             <small class="text-muted ms-2">${wp.coords}</small>
+    //             <button type="button" class="btn btn-sm btn-outline-danger ms-auto" 
+    //                     onclick="removeWaypoint(${i})">
+    //                 <i class="bi bi-trash"></i>
+    //             </button>
+    //         </div>
+    //     `).join('');
+    // } -->
+    
+<!-- //     function removeWaypoint(index) {
+//         waypointMarkers[index].marker.remove();
+//         waypointMarkers.splice(index, 1);
+//         updateWaypointsList();
+//     }
+    
+//     function clearRoute() {
+//         if (originMarker) originMarker.remove();
+//         if (destinationMarker) destinationMarker.remove();
+//         waypointMarkers.forEach(wp => wp.marker.remove());
+//         waypointMarkers.length = 0;
+        
+//         document.getElementById('routeForm').reset();
+//         document.getElementById('waypointsList').innerHTML = '';
+//         document.getElementById('originSearch').value = '';
+//         document.getElementById('destSearch').value = '';
+//         document.getElementById('waypointSearch').value = '';
+//         currentMode = null;
+//     }
+    
+//     // Make removeWaypoint available globally
+//     window.removeWaypoint = removeWaypoint;
+// });
+// </script> -->
+
+<!-- <style>
+    .mapboxgl-ctrl-geocoder {
+        width: 100%;
+        max-width: none;
+        box-shadow: none;
+        border: 1px solid #ced4da;
+    }
+    .mapboxgl-ctrl-geocoder input {
+        padding: 0.375rem 0.75rem;
+    }
+    #waypointsList {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .mapboxgl-marker {
+        cursor: pointer;
+    }
+</style>
+</script> 
+</body>
+</html>   -->
+
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Routes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css">
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Manage Traffic Monitoring Routes</h2>
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Search for locations or click on the map to set route points
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">Add New Route</div>
+        <div class="card-body">
+            <!-- Interactive Map -->
+            <div id="routeMap" style="height: 400px; margin-bottom: 20px; border-radius: 5px;"></div>
+            
+            <form id="routeForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Origin</label>
+                            <div class="input-group">
+                                <div id="originGeocoder" class="geocoder"></div>
+                                <button class="btn btn-outline-secondary" type="button" id="setOriginBtn">
+                                    <i class="bi bi-map"></i> Pick on Map
+                                </button>
+                            </div>
+                            <input type="hidden" name="origin" required>
+                            <input type="hidden" name="origin_coords" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Destination</label>
+                            <div class="input-group">
+                                <div id="destGeocoder" class="geocoder"></div>
+                                <button class="btn btn-outline-secondary" type="button" id="setDestBtn">
+                                    <i class="bi bi-map"></i> Pick on Map
+                                </button>
+                            </div>
+                            <input type="hidden" name="destination" required>
+                            <input type="hidden" name="dest_coords" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Waypoints</label>
+                    <div class="input-group mb-2">
+                        <div id="waypointGeocoder" class="geocoder"></div>
+                        <button class="btn btn-outline-secondary" type="button" id="addWaypointBtn">
+                            <i class="bi bi-map"></i> Pick on Map
+                        </button>
+                    </div>
+                    <div id="waypointsList" class="mb-2"></div>
+                    <input type="hidden" name="waypoints">
+                </div>
+                
+                <!-- Added email notification field -->
+                <div class="mb-3">
+                    <label for="notificationEmail" class="form-label">Notification Email</label>
+                    <input type="email" class="form-control" id="notificationEmail" name="notification_email" 
+                           placeholder="Enter email for traffic alerts" required>
+                    <div class="form-text">Alerts will be sent to this email when traffic conditions change</div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Route
+                </button>
+                <button type="button" class="btn btn-outline-danger ms-2" id="clearRouteBtn">
+                    <i class="bi bi-trash"></i> Clear
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Current Routes</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="routesTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Origin</th>
+                            <th>Destination</th>
+                            <th>Notification Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Routes will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set your Mapbox access token
+  
+     mapboxgl.accessToken = '{{ mapbox_token }}';
+    // Initialize map centered on Lagos
+    const map = new mapboxgl.Map({
+        container: 'routeMap',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [3.3792, 6.5244], // [lng, lat]
+        zoom: 12
+    });
+    
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl());
+    
+    // Map markers
+    let originMarker, destinationMarker;
+    const waypointMarkers = [];
+    let currentMode = null;
+    
+    // Initialize Geocoders for address search
+    const originGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search origin address',
+        countries: 'ng', // Nigeria only
+        proximity: { longitude: 3.3792, latitude: 6.5244 }, // Lagos center
+        marker: false
+    });
+    
+    const destGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search destination address',
+        countries: 'ng',
+        proximity: { longitude: 3.3792, latitude: 6.5244 },
+        marker: false
+    });
+    
+    const waypointGeocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        placeholder: 'Search waypoint address',
+        countries: 'ng',
+        proximity: { longitude: 3.3792, latitude: 6.5244 },
+        marker: false
+    });
+    
+    // Add geocoders to containers
+    document.getElementById('originGeocoder').appendChild(originGeocoder.onAdd(map));
+    document.getElementById('destGeocoder').appendChild(destGeocoder.onAdd(map));
+    document.getElementById('waypointGeocoder').appendChild(waypointGeocoder.onAdd(map));
+    
+    // Handle geocoder results
+    originGeocoder.on('result', (e) => {
+        setOrigin([e.result.center[1], e.result.center[0]], e.result.place_name);
+    });
+    
+    destGeocoder.on('result', (e) => {
+        setDestination([e.result.center[1], e.result.center[0]], e.result.place_name);
+    });
+    
+    waypointGeocoder.on('result', (e) => {
+        addWaypoint([e.result.center[1], e.result.center[0]], e.result.place_name);
+    });
+    
+    // Button event handlers
+    document.getElementById('setOriginBtn').addEventListener('click', function() {
+        currentMode = 'origin';
+        alert('Click on the map to set origin location');
+    });
+    
+    document.getElementById('setDestBtn').addEventListener('click', function() {
+        currentMode = 'destination';
+        alert('Click on the map to set destination location');
+    });
+    
+    document.getElementById('addWaypointBtn').addEventListener('click', function() {
+        currentMode = 'waypoint';
+        alert('Click on the map to add waypoint');
+    });
+    
+    document.getElementById('clearRouteBtn').addEventListener('click', clearRoute);
+    
+    // Form submit handler
+    document.getElementById('routeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        const origin = document.querySelector('[name="origin"]').value;
+        const originCoords = document.querySelector('[name="origin_coords"]').value;
+        const destination = document.querySelector('[name="destination"]').value;
+        const destCoords = document.querySelector('[name="dest_coords"]').value;
+        const notificationEmail = document.querySelector('[name="notification_email"]').value;
+        
+        if (!origin || !originCoords || !destination || !destCoords || !notificationEmail) {
+            alert('Please fill all required fields including the notification email');
+            return;
+        }
+        
+        // Validate email format
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notificationEmail)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+        
+        // Prepare data
+        const waypointsStr = document.querySelector('[name="waypoints"]').value;
+        const waypoints = waypointsStr ? waypointsStr.split(';').map(wp => {
+            const [lat, lng] = wp.split(',');
+            return [parseFloat(lat), parseFloat(lng)];
+        }) : [];
+        
+        const [originLat, originLng] = originCoords.split(',').map(parseFloat);
+        const [destLat, destLng] = destCoords.split(',').map(parseFloat);
+        
+        const newRoute = {
+            origin: origin,
+            destination: destination,
+            coords: {
+                origin: [originLat, originLng],
+                destination: [destLat, destLng],
+                waypoints: waypoints
+            },
+            notification_email: notificationEmail
+        };
+        
+        // Save route
+        fetch('/api/routes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newRoute)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Route added successfully!');
+                clearRoute();
+                loadRoutes();
+            } else {
+                alert('Error adding route: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving route:', error);
+            alert('Failed to save route. See console for details.');
+        });
+    });
+    
+    // Map click handler
+    map.on('click', function(e) {
+        if (!currentMode) return;
+        
+        const coords = [e.lngLat.lat, e.lngLat.lng];
+        
+        switch(currentMode) {
+            case 'origin':
+                setOrigin(coords, `Custom Origin (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+                break;
+            case 'destination':
+                setDestination(coords, `Custom Destination (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+                break;
+            case 'waypoint':
+                addWaypoint(coords, `Waypoint (${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)})`);
+                break;
+        }
+        
+        currentMode = null;
+    });
+    
+    // Route management functions
+    function setOrigin(coords, name) {
+        if (originMarker) originMarker.remove();
+        
+        originMarker = new mapboxgl.Marker({
+            color: '#3388ff',
+            draggable: true
+        })
+        .setLngLat([coords[1], coords[0]])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>Origin:</strong> ${name}`))
+        .addTo(map);
+        
+        document.querySelector('[name="origin"]').value = name;
+        document.querySelector('[name="origin_coords"]').value = coords.join(',');
+        
+        originMarker.on('dragend', () => {
+            const newCoords = originMarker.getLngLat();
+            document.querySelector('[name="origin_coords"]').value = `${newCoords.lat},${newCoords.lng}`;
+        });
+        
+        updateRoute();
+    }
+    
+    function setDestination(coords, name) {
+        if (destinationMarker) destinationMarker.remove();
+        
+        destinationMarker = new mapboxgl.Marker({
+            color: '#ff3333',
+            draggable: true
+        })
+        .setLngLat([coords[1], coords[0]])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>Destination:</strong> ${name}`))
+        .addTo(map);
+        
+        document.querySelector('[name="destination"]').value = name;
+        document.querySelector('[name="dest_coords"]').value = coords.join(',');
+        
+        destinationMarker.on('dragend', () => {
+            const newCoords = destinationMarker.getLngLat();
+            document.querySelector('[name="dest_coords"]').value = `${newCoords.lat},${newCoords.lng}`;
+            
+            updateRoute();
+        });
+        
+        updateRoute();
+    }
+    
+    function addWaypoint(coords, name) {
+        const marker = new mapboxgl.Marker({
+            color: '#33cc33',
+            draggable: true
+        })
+        .setLngLat([coords[1], coords[0]])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>Waypoint ${waypointMarkers.length + 1}:</strong> ${name}`))
+        .addTo(map);
+        
+        waypointMarkers.push({
+            marker: marker,
+            name: name
+        });
+        
+        marker.on('dragend', () => {
+            updateWaypointsList();
+            updateRoute();
+        });
+        
+        updateWaypointsList();
+        updateRoute();
+    }
+    
+    function updateWaypointsList() {
+        const waypoints = waypointMarkers.map((wp, i) => {
+            const coords = wp.marker.getLngLat();
+            return {
+                coords: `${coords.lat},${coords.lng}`,
+                name: wp.name || `Waypoint ${i+1}`
+            };
+        });
+        
+        document.querySelector('[name="waypoints"]').value = waypoints.map(wp => wp.coords).join(';');
+        
+        // Update visual list
+        const list = document.getElementById('waypointsList');
+        list.innerHTML = waypoints.map((wp, i) => `
+            <div class="d-flex align-items-center mb-1 p-2 bg-light rounded">
+                <span class="badge bg-success me-2">${i+1}</span>
+                <span class="small">${wp.name}</span>
+                <small class="text-muted ms-2">${wp.coords}</small>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" 
+                        onclick="removeWaypoint(${i})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    function updateRoute() {
+        // Draw route line if origin and destination are set
+        if (originMarker && destinationMarker) {
+            // Build coordinates array
+            const coordinates = [
+                originMarker.getLngLat().toArray()
+            ];
+            
+            waypointMarkers.forEach(wp => {
+                coordinates.push(wp.marker.getLngLat().toArray());
+            });
+            
+            coordinates.push(destinationMarker.getLngLat().toArray());
+            
+            // Remove existing route layer if it exists
+            if (map.getSource('route')) {
+                map.removeLayer('route-line');
+                map.removeSource('route');
+            }
+            
+            // Add new route layer
+            map.addSource('route', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'Feature',
+                    'properties': {},
+                    'geometry': {
+                        'type': 'LineString',
+                        'coordinates': coordinates
+                    }
+                }
+            });
+            
+            map.addLayer({
+                'id': 'route-line',
+                'type': 'line',
+                'source': 'route',
+                'layout': {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                'paint': {
+                    'line-color': '#3388ff',
+                    'line-width': 4,
+                    'line-opacity': 0.7
+                }
+            });
+            
+            // Fit bounds to include all markers
+            const bounds = new mapboxgl.LngLatBounds();
+            coordinates.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds, { padding: 50 });
+        }
+    }
+    
+    function removeWaypoint(index) {
+        waypointMarkers[index].marker.remove();
+        waypointMarkers.splice(index, 1);
+        updateWaypointsList();
+        updateRoute();
+    }
+    
+    function clearRoute() {
+        if (originMarker) originMarker.remove();
+        if (destinationMarker) destinationMarker.remove();
+        waypointMarkers.forEach(wp => wp.marker.remove());
+        waypointMarkers.length = 0;
+        
+        document.getElementById('routeForm').reset();
+        document.getElementById('waypointsList').innerHTML = '';
+        
+        // Reset geocoder inputs
+        originGeocoder.clear();
+        destGeocoder.clear();
+        waypointGeocoder.clear();
+        
+        // Remove route layer if exists
+        if (map.getSource('route')) {
+            map.removeLayer('route-line');
+            map.removeSource('route');
+        }
+        
+        currentMode = null;
+    }
+    
+    // Load existing routes
+    function loadRoutes() {
+        fetch('/api/routes')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.querySelector('#routesTable tbody');
+            tbody.innerHTML = '';
+            
+            if (data.routes && data.routes.length > 0) {
+                data.routes.forEach((route, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${route.origin}</td>
+                        <td>${route.destination}</td>
+                        <td>${route.notification_email || 'Not specified'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRoute(${index})">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No routes defined</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading routes:', error);
+        });
+    }
+    
+    // Delete route function
+    window.deleteRoute = function(routeId) {
+        if (confirm('Are you sure you want to delete this route?')) {
+            fetch(`/api/routes/${routeId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadRoutes();
+                } else {
+                    alert('Error deleting route: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting route:', error);
+                alert('Failed to delete route. See console for details.');
+            });
+        }
+    };
+    
+    // Make removeWaypoint available globally
+    window.removeWaypoint = removeWaypoint;
+    
+    // Load routes on page load
+    loadRoutes();
+});
+</script>
+
+<style>
+    .geocoder {
+        flex-grow: 1;
+    }
+    .mapboxgl-ctrl-geocoder {
+        width: 100%;
+        max-width: none;
+        box-shadow: none;
+        border: 1px solid #ced4da;
+    }
+    .mapboxgl-ctrl-geocoder input {
+        height: 36px;
+    }
+    #waypointsList {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .mapboxgl-marker {
+        cursor: pointer;
+    }
+</style>
+</body>
+</html>
+
