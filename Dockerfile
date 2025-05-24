@@ -37,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 EXPOSE $PORT
 
 # Command to run the application (matches your Gunicorn config in app.py)
-CMD ["python", "app.py"]
+CMD ["python", "traffic_bot.py"]
