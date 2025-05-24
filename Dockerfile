@@ -4,11 +4,13 @@ FROM python:3.9-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV PORT 5000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and set working directory
@@ -24,8 +26,15 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/templates /app/static /app/reports
 
-# Expose the port the app runs on
-EXPOSE 5000
+# Set permissions for the directories
+RUN chmod -R a+rwx /app/templates /app/static /app/reports
 
-# Command to run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "traffic_bot:app"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:$PORT/healthcheck || exit 1
+
+# Expose the port the app runs on
+EXPOSE $PORT
+
+# Command to run the application (matches your Gunicorn config in app.py)
+CMD ["python", "app.py"]
