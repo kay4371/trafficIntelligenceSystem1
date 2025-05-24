@@ -668,7 +668,6 @@
 
 
 
-
 from fpdf import FPDF  # Works for both fpdf and fpdf2
 import base64          # Add this import if not already present
 import torch
@@ -1384,10 +1383,16 @@ def _run_monitoring_logic():
     logging.info("Monitoring cycle completed successfully")
 
 def scheduler_thread():
-    schedule.every(15).minutes.do(run_monitoring)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    while True:  # Outer loop for crash recovery
+        try:
+            schedule.every(15).minutes.do(run_monitoring)
+            while True:  # Inner loop for normal operation
+                schedule.run_pending()
+                time.sleep(1)
+        except Exception as e:
+            logging.error(f"Scheduler crashed: {str(e)}")
+            logging.info("Restarting scheduler in 30 seconds...")
+            time.sleep(30)
 
 if __name__ == '__main__':
     os.makedirs("templates", exist_ok=True)
@@ -1400,9 +1405,29 @@ if __name__ == '__main__':
     except Exception as e:
         logging.error(f"Failed to start scheduler: {str(e)}")
     
-    try:
-        app.run(host='0.0.0.0', port=5000)
-    except Exception as e:
-        logging.error(f"Flask app failed: {str(e)}")
-    finally:
-        logging.info("Shutting down...")
+    from gunicorn.app.base import BaseApplication
+
+    class FlaskApplication(BaseApplication):
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+
+        def load_config(self):
+            config = {key: value for key, value in self.options.items()
+                     if key in self.cfg.settings and value is not None}
+            for key, value in config.items():
+                self.cfg.set(key.lower(), value)
+
+        def load(self):
+            return self.application
+
+    options = {
+        'bind': '0.0.0.0:5000',
+        'workers': 2,
+        'timeout': 120,
+        'worker_class': 'sync',
+        'keepalive': 5,
+    }
+    
+    FlaskApplication(app, options).run()
